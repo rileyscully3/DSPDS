@@ -9,7 +9,7 @@ The repository covers two connected systems:
 
 ## Current phase
 
-**Documentation and implementation-contract setup. No application code has been approved yet.**
+**M0 application scaffold and architecture diagnostic implemented. Product mechanics begin in later milestones and are not part of this phase.**
 
 Start with [`docs/00-START-HERE.md`](docs/00-START-HERE.md). Coding agents must read [`AGENTS.md`](AGENTS.md) before changing the repository.
 
