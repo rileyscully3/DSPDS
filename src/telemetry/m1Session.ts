@@ -17,7 +17,7 @@ export const M1_EXPORT_SCHEMA_ID = "dspds.m1-input-session" as const;
 export const M1_EXPORT_SCHEMA_VERSION = 1 as const;
 
 export type M1EvidenceSource =
-  "physical-browser-capture" | "synthetic-fixture" | "replay";
+  "browser-event-capture" | "synthetic-fixture" | "replay";
 
 export interface M1EnvironmentMetadata {
   readonly userAgent: string;
@@ -97,10 +97,10 @@ export function createM1SessionExport(
   ) {
     throw new Error("A recording must be started before it can be exported.");
   }
-  const source = options.source ?? "physical-browser-capture";
+  const source = options.source ?? "browser-event-capture";
   const syntheticNotice =
     options.syntheticEvidenceNotice ??
-    (source === "physical-browser-capture"
+    (source === "browser-event-capture"
       ? null
       : "Synthetic or replayed browser data proves application logic only; it does not prove physical unadjusted-input quality.");
   return deepFreeze({
@@ -169,7 +169,7 @@ export function assertM1SessionExport(
     throw new Error("Malformed M1 export metadata.");
   }
   if (
-    !["physical-browser-capture", "synthetic-fixture", "replay"].includes(
+    !["browser-event-capture", "synthetic-fixture", "replay"].includes(
       String(value.evidenceSource),
     ) ||
     !(

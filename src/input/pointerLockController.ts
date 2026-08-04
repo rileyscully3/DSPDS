@@ -45,9 +45,9 @@ export function createBrowserPointerLockAdapter(
           "NotSupportedError",
         );
       }
-      const result = request(
-        unadjusted ? { unadjustedMovement: true } : undefined,
-      );
+      const result = unadjusted
+        ? request({ unadjustedMovement: true })
+        : request();
       await Promise.resolve(result);
     },
     exit: () => documentTarget.exitPointerLock?.(),
