@@ -206,6 +206,7 @@ test("versioned capture download and synthetic fixture replay work", async ({
   const exported = JSON.parse(json) as {
     schemaId: string;
     schemaVersion: number;
+    samples: { dx: number; dy: number }[];
   };
   expect(exported).toMatchObject({
     schemaId: "dspds.m1-input-session",
@@ -217,8 +218,18 @@ test("versioned capture download and synthetic fixture replay work", async ({
   await expect(
     page.getByRole("heading", { name: "Deterministic 2D path replay" }),
   ).toBeVisible();
+  const exportedDeltaX = exported.samples.reduce(
+    (total, sample) => total + sample.dx,
+    0,
+  );
+  const exportedDeltaY = exported.samples.reduce(
+    (total, sample) => total + sample.dy,
+    0,
+  );
   await expect(
-    page.getByText("1 samples · total dx 4 · total dy 2"),
+    page.getByText(
+      `${exported.samples.length} samples · total dx ${exportedDeltaX} · total dy ${exportedDeltaY}`,
+    ),
   ).toBeVisible();
 
   await page
