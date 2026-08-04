@@ -1,0 +1,48 @@
+name: Implementation slice
+description: Define a milestone-sized implementation task with evidence and acceptance criteria.
+title: "[M#] "
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User-visible outcome
+      description: What coherent capability will exist when this issue is complete?
+    validations:
+      required: true
+  - type: textarea
+    id: authority
+    attributes:
+      label: Governing requirements
+      description: Cite the specification, design screen IDs, decisions, or repository contracts.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: In scope
+    validations:
+      required: true
+  - type: textarea
+    id: exclusions
+    attributes:
+      label: Explicitly out of scope
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use objective, testable statements.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Required evidence
+      description: Automated tests, manual protocols, screenshots, recordings, or exported telemetry.
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risks and unknowns
