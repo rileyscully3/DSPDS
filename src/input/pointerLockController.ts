@@ -166,6 +166,12 @@ export class PointerLockController {
     if (this.disposed) return;
     const locked = this.adapter.lockedElement() === this.element;
     if (locked) {
+      if (
+        this.state === "active-unadjusted" ||
+        this.state === "active-adjusted"
+      ) {
+        return;
+      }
       const mode = this.pendingMode ?? "adjusted";
       this.pendingMode = null;
       this.setState(
