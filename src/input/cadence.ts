@@ -1,7 +1,4 @@
-import type {
-  InputCadenceSummary,
-  RenderCadenceSummary,
-} from "./contracts";
+import type { InputCadenceSummary, RenderCadenceSummary } from "./contracts";
 
 function median(values: Float64Array, length: number): number | null {
   if (length === 0) return null;
@@ -53,9 +50,7 @@ export class InputCadenceCollector {
     overflowed: boolean,
   ): InputCadenceSummary {
     const observedDurationMs =
-      this.sampleCount > 1
-        ? this.lastTimestampMs - this.firstTimestampMs
-        : 0;
+      this.sampleCount > 1 ? this.lastTimestampMs - this.firstTimestampMs : 0;
     return Object.freeze({
       acceptedSampleCount: this.sampleCount,
       intervalCount: this.intervalCount,
@@ -64,8 +59,7 @@ export class InputCadenceCollector {
           ? ((this.sampleCount - 1) * 1000) / observedDurationMs
           : 0,
       medianIntervalMs: median(this.intervals, this.intervalCount),
-      maximumGapMs:
-        this.intervalCount === 0 ? null : this.maximumGapMs,
+      maximumGapMs: this.intervalCount === 0 ? null : this.maximumGapMs,
       suspiciousGapCount: this.suspiciousGapCount,
       rejectedSampleCount,
       overflowed,

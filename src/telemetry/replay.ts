@@ -1,11 +1,5 @@
-import type {
-  InterruptionMarker,
-  RawInputSample,
-} from "../input/contracts";
-import {
-  assertM1SessionExport,
-  type M1SessionExport,
-} from "./m1Session";
+import type { InterruptionMarker, RawInputSample } from "../input/contracts";
+import { assertM1SessionExport, type M1SessionExport } from "./m1Session";
 
 export interface ReplayTotals {
   readonly deltaX: number;
@@ -53,12 +47,14 @@ export function replayM1Session(session: M1SessionExport): M1Replay {
     buttonsObserved |= sample.buttons;
   }
   const orderedStream: ReplayStreamRecord[] = [
-    ...session.samples.map(
-      (record): ReplayStreamRecord => ({ kind: "sample", record }),
-    ),
-    ...session.interruptions.map(
-      (record): ReplayStreamRecord => ({ kind: "interruption", record }),
-    ),
+    ...session.samples.map((record): ReplayStreamRecord => ({
+      kind: "sample",
+      record,
+    })),
+    ...session.interruptions.map((record): ReplayStreamRecord => ({
+      kind: "interruption",
+      record,
+    })),
   ];
   orderedStream.sort(
     (left, right) => left.record.sequence - right.record.sequence,

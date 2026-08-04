@@ -11,17 +11,9 @@ export const SampleFlag = {
   SuspiciousGapBefore: 1 << 0,
 } as const;
 
-export type CaptureValidity =
-  | "valid"
-  | "qualified"
-  | "interrupted"
-  | "invalid";
+export type CaptureValidity = "valid" | "qualified" | "interrupted" | "invalid";
 
-export type CaptureStatus =
-  | "idle"
-  | "recording"
-  | "complete"
-  | "interrupted";
+export type CaptureStatus = "idle" | "recording" | "complete" | "interrupted";
 
 export type InterruptionReason =
   | "pointer-lock-loss"

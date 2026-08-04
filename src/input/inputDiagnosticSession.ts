@@ -56,10 +56,7 @@ export class InputDiagnosticSession {
         createBrowserPointerLockAdapter(options.documentTarget ?? document),
       {
         onChange: (snapshot) => {
-          if (
-            snapshot.activeMode &&
-            !this.recorder.isRecording
-          ) {
+          if (snapshot.activeMode && !this.recorder.isRecording) {
             this.renderCadence.reset();
             this.renderCadence.observeLongTasks();
             this.recorder.start(

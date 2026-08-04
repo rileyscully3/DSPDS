@@ -23,7 +23,7 @@ async function installPointerLockMock(
           new DOMException("unadjusted unavailable", "NotSupportedError"),
         );
       }
-      locked = this;
+      locked = document.querySelector(".input-diagnostic");
       queueMicrotask(() =>
         document.dispatchEvent(new Event("pointerlockchange")),
       );
@@ -105,11 +105,18 @@ test("capture requires explicit interaction and interruptions do not merge", asy
   await page.goto("/#/input-diagnostic");
   await expect(page.getByText("Recording", { exact: true })).toBeVisible();
   await expect(
-    page.locator(".metric").filter({ hasText: "Accepted samples" }).locator("strong"),
+    page
+      .locator(".metric")
+      .filter({ hasText: "Accepted samples" })
+      .locator("strong"),
   ).toHaveText("0");
 
-  await page.getByRole("button", { name: "Start 20-second diagnostic" }).click();
-  await expect(page.getByText("active unadjusted", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Start 20-second diagnostic" })
+    .click();
+  await expect(
+    page.getByText("active unadjusted", { exact: true }),
+  ).toBeVisible();
   await page.evaluate(() => {
     document.dispatchEvent(
       new MouseEvent("mousemove", {
@@ -127,30 +134,46 @@ test("capture requires explicit interaction and interruptions do not merge", asy
     );
   });
   await expect(
-    page.locator(".metric").filter({ hasText: "Accepted samples" }).locator("strong"),
+    page
+      .locator(".metric")
+      .filter({ hasText: "Accepted samples" })
+      .locator("strong"),
   ).toHaveText("2");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("user cancelled");
 
-  await page.getByRole("button", { name: "Start 20-second diagnostic" }).click();
+  await page
+    .getByRole("button", { name: "Start 20-second diagnostic" })
+    .click();
   await expect(
-    page.locator(".metric").filter({ hasText: "Accepted samples" }).locator("strong"),
+    page
+      .locator(".metric")
+      .filter({ hasText: "Accepted samples" })
+      .locator("strong"),
   ).toHaveText("0");
   await page.getByRole("button", { name: "Stop", exact: true }).click();
 });
 
-test("adjusted fallback is explicit, visible, and qualified", async ({ page }) => {
+test("adjusted fallback is explicit, visible, and qualified", async ({
+  page,
+}) => {
   await installPointerLockMock(page, true);
   await page.goto("/#/input-diagnostic");
-  await page.getByRole("button", { name: "Start 20-second diagnostic" }).click();
-  await expect(page.getByText("fallback required", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Start 20-second diagnostic" })
+    .click();
+  await expect(
+    page.getByText("fallback required", { exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByText("Adjusted pointer lock is not equivalent"),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Continue with adjusted fallback" })
     .click();
-  await expect(page.getByText("active adjusted", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("active adjusted", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("alert")).toContainText("adjusted fallback");
   await page.getByRole("button", { name: "Stop", exact: true }).click();
 });
@@ -160,7 +183,9 @@ test("versioned capture download and synthetic fixture replay work", async ({
 }) => {
   await installPointerLockMock(page);
   await page.goto("/#/input-diagnostic");
-  await page.getByRole("button", { name: "Start 20-second diagnostic" }).click();
+  await page
+    .getByRole("button", { name: "Start 20-second diagnostic" })
+    .click();
   await page.evaluate(() => {
     document.dispatchEvent(
       new MouseEvent("mousemove", {
@@ -193,7 +218,9 @@ test("versioned capture download and synthetic fixture replay work", async ({
   await expect(
     page.getByRole("heading", { name: "Deterministic 2D path replay" }),
   ).toBeVisible();
-  await expect(page.getByText("4 samples · total dx 0 · total dy 0")).toBeVisible();
+  await expect(
+    page.getByText("4 samples · total dx 0 · total dy 0"),
+  ).toBeVisible();
   await page.getByRole("button", { name: "2×" }).click();
   await expect(page.getByRole("button", { name: "2×" })).toHaveAttribute(
     "aria-pressed",

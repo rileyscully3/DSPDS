@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import syntheticFixture from "../test-support/fixtures/m1-synthetic-session.json";
 import {
   DEFAULT_DIAGNOSTIC_DURATION_MS,
@@ -132,8 +126,7 @@ export function InputDiagnosticScreen() {
   const recordingActive = recording?.status === "recording";
   const canExport =
     recording?.captureId !== null && recording?.captureId !== undefined;
-  const fallbackVisible =
-    pointerLock?.adjustedFallbackRequiresAction === true;
+  const fallbackVisible = pointerLock?.adjustedFallbackRequiresAction === true;
 
   return (
     <>
@@ -212,9 +205,9 @@ export function InputDiagnosticScreen() {
             </p>
             {fallbackVisible ? (
               <p className="qualified-notice">
-                Adjusted pointer lock is not equivalent to confirmed
-                unadjusted input. Continuing requires the separate action
-                above, and the export remains qualified.
+                Adjusted pointer lock is not equivalent to confirmed unadjusted
+                input. Continuing requires the separate action above, and the
+                export remains qualified.
               </p>
             ) : null}
           </div>
@@ -282,8 +275,8 @@ export function InputDiagnosticScreen() {
             <h2>Escape and interruption recovery</h2>
             <p>
               Escape exits pointer lock and interrupts the active recording.
-              Focus or visibility loss also interrupts it. Return here and
-              start a new recording; partial evidence is never merged.
+              Focus or visibility loss also interrupts it. Return here and start
+              a new recording; partial evidence is never merged.
             </p>
           </div>
           <div className="button-row">
@@ -332,11 +325,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ValidityNotice({
-  reasons,
-}: {
-  reasons: readonly ValidityReason[];
-}) {
+function ValidityNotice({ reasons }: { reasons: readonly ValidityReason[] }) {
   if (reasons.length === 0) {
     return (
       <div className="validity-notice validity-notice--clear">
@@ -395,8 +384,8 @@ function ReplayPanel({
           ))}
         </div>
         <p>
-          {replay.totals.sampleCount} samples · total dx{" "}
-          {replay.totals.deltaX} · total dy {replay.totals.deltaY}
+          {replay.totals.sampleCount} samples · total dx {replay.totals.deltaX}{" "}
+          · total dy {replay.totals.deltaY}
         </p>
       </div>
       <svg

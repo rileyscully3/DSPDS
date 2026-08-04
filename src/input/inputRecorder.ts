@@ -145,7 +145,9 @@ export class InputRecorder {
 
   reset(): void {
     if (this.status === "recording") {
-      throw new Error("An active recording must be stopped or cancelled first.");
+      throw new Error(
+        "An active recording must be stopped or cancelled first.",
+      );
     }
     this.samples.clear();
     this.markers.clear();

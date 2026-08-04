@@ -9,10 +9,7 @@ import {
   serializeM1Session,
   type M1EnvironmentMetadata,
 } from "./m1Session";
-import {
-  createReplayPresentation,
-  replayM1Session,
-} from "./replay";
+import { createReplayPresentation, replayM1Session } from "./replay";
 
 const environment: M1EnvironmentMetadata = Object.freeze({
   userAgent: "vitest",
@@ -107,12 +104,12 @@ describe("M1 export and replay", () => {
     const double = createReplayPresentation(exported, 2);
     expect(normal[1]?.presentationOffsetMs).toBe(1);
     expect(double[1]?.presentationOffsetMs).toBe(0.5);
-    expect(normal.map(({ rawCaptureTimestampMs }) => rawCaptureTimestampMs)).toEqual(
-      double.map(({ rawCaptureTimestampMs }) => rawCaptureTimestampMs),
-    );
-    expect(exported.samples.map(({ captureTimestampMs }) => captureTimestampMs)).toEqual([
-      11, 12,
-    ]);
+    expect(
+      normal.map(({ rawCaptureTimestampMs }) => rawCaptureTimestampMs),
+    ).toEqual(double.map(({ rawCaptureTimestampMs }) => rawCaptureTimestampMs));
+    expect(
+      exported.samples.map(({ captureTimestampMs }) => captureTimestampMs),
+    ).toEqual([11, 12]);
   });
 
   test("committed synthetic fixture replays deterministically", () => {

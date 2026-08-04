@@ -97,8 +97,7 @@ export class PointerLockController {
       supported: this.adapter.supported,
       activeMode,
       adjustedFallbackRequiresAction:
-        this.state === "fallback-required" ||
-        this.state === "request-failed",
+        this.state === "fallback-required" || this.state === "request-failed",
       detail: detailForState(this.state),
     });
   }
@@ -128,10 +127,7 @@ export class PointerLockController {
 
   async requestAdjustedFromUserGesture(): Promise<void> {
     this.assertUsable();
-    if (
-      this.state !== "fallback-required" &&
-      this.state !== "request-failed"
-    ) {
+    if (this.state !== "fallback-required" && this.state !== "request-failed") {
       throw new Error(
         "Adjusted pointer lock requires a failed or unavailable unadjusted request.",
       );
@@ -204,14 +200,12 @@ export class PointerLockController {
 }
 
 function isDomExceptionNamed(error: unknown, name: string): boolean {
-  return (
-    error instanceof DOMException
-      ? error.name === name
-      : typeof error === "object" &&
+  return error instanceof DOMException
+    ? error.name === name
+    : typeof error === "object" &&
         error !== null &&
         "name" in error &&
-        error.name === name
-  );
+        error.name === name;
 }
 
 function detailForState(state: PointerLockState): string {

@@ -86,8 +86,8 @@ export function App() {
               </p>
               <p>
                 Input diagnostics now live behind their own typed boundary.
-                Scenarios, analysis, coaching, persistence, and later
-                milestones remain deliberately deferred.
+                Scenarios, analysis, coaching, persistence, and later milestones
+                remain deliberately deferred.
               </p>
             </div>
           </>

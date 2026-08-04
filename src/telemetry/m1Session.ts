@@ -17,9 +17,7 @@ export const M1_EXPORT_SCHEMA_ID = "dspds.m1-input-session" as const;
 export const M1_EXPORT_SCHEMA_VERSION = 1 as const;
 
 export type M1EvidenceSource =
-  | "physical-browser-capture"
-  | "synthetic-fixture"
-  | "replay";
+  "physical-browser-capture" | "synthetic-fixture" | "replay";
 
 export interface M1EnvironmentMetadata {
   readonly userAgent: string;
@@ -193,8 +191,7 @@ export function assertM1SessionExport(
   }
   if (
     !isRecord(value.gapPolicy) ||
-    value.gapPolicy.classification !==
-      "operational-browser-input-heuristic" ||
+    value.gapPolicy.classification !== "operational-browser-input-heuristic" ||
     !isFiniteNumber(value.gapPolicy.suspiciousGapMs)
   ) {
     throw new Error("M1 gap policy is missing or invalid.");
@@ -210,9 +207,7 @@ function validateSample(value: unknown): void {
     !isFiniteNumber(value.dx) ||
     !isFiniteNumber(value.dy) ||
     !Number.isInteger(value.buttons) ||
-    !["unadjusted", "adjusted", "synthetic"].includes(
-      String(value.inputMode),
-    )
+    !["unadjusted", "adjusted", "synthetic"].includes(String(value.inputMode))
   ) {
     throw new Error("Malformed M1 raw input sample.");
   }

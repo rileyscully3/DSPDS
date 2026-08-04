@@ -54,9 +54,7 @@ test("focus and visibility loss interrupt active capture", () => {
   input.start("unadjusted", 2_000, 0);
   vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
   document.dispatchEvent(new Event("visibilitychange"));
-  expect(input.snapshot().interruptions[0]?.reason).toBe(
-    "visibility-hidden",
-  );
+  expect(input.snapshot().interruptions[0]?.reason).toBe("visibility-hidden");
   adapter.dispose();
 });
 

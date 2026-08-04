@@ -162,11 +162,7 @@ describe("InputRecorder", () => {
     expect(fast.input.samples).toEqual(slow.input.samples);
     expect(
       fast.input.samples.reduce((total, sample) => total + sample.dx, 0),
-    ).toBe(
-      slow.input.samples.reduce((total, sample) => total + sample.dx, 0),
-    );
-    expect(fast.render.framesPerSecond).not.toBe(
-      slow.render.framesPerSecond,
-    );
+    ).toBe(slow.input.samples.reduce((total, sample) => total + sample.dx, 0));
+    expect(fast.render.framesPerSecond).not.toBe(slow.render.framesPerSecond);
   });
 });

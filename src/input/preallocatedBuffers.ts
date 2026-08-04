@@ -191,9 +191,7 @@ export class PreallocatedMarkerBuffer {
         timestampMs: this.timestamps[index] ?? 0,
         reason,
         resultingValidity: validity,
-        observedGapMs: this.hasGap[index]
-          ? (this.gapValues[index] ?? 0)
-          : null,
+        observedGapMs: this.hasGap[index] ? (this.gapValues[index] ?? 0) : null,
       });
     }
     return Object.freeze(markers);
