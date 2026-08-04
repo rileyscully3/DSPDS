@@ -1,0 +1,41 @@
+name: Bug report
+description: Report incorrect behavior, input inconsistency, data corruption, or design mismatch.
+title: "[Bug] "
+body:
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Windows version, browser and version, mouse, DPI, display refresh rate
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Screenshots, recording, exported session, console output, or input diagnostics.
+  - type: checkboxes
+    id: integrity
+    attributes:
+      label: Integrity impact
+      options:
+        - label: Raw input or timing may be affected
+        - label: Stored profile/session data may be affected
+        - label: Formal assessment validity may be affected
+        - label: Result explanation may be misleading

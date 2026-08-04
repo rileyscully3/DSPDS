@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  project-checks:
+    if: ${{ hashFiles('package-lock.json') != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test -- --run
+      - run: npm run build
+
+  documentation-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify required contracts
+        shell: bash
+        run: |
+          test -f AGENTS.md
+          test -f docs/00-START-HERE.md
+          test -f docs/product/PRODUCT_SPEC_SUMMARY.md
+          test -f docs/architecture/INPUT_AND_SCIENCE_GUARDRAILS.md
+          test -f docs/design/DESIGN_HANDOFF.md
+          test -f docs/engineering/IMPLEMENTATION_PLAN.md
