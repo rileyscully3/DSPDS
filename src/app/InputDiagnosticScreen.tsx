@@ -127,7 +127,8 @@ export function InputDiagnosticScreen() {
     setReplayError(null);
   };
   const loadReplayFile = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
     try {
       setReplaySession(parseM1Session(await file.text()));
@@ -138,7 +139,7 @@ export function InputDiagnosticScreen() {
         error instanceof Error ? error.message : "Replay file is invalid.",
       );
     } finally {
-      event.currentTarget.value = "";
+      input.value = "";
     }
   };
 
