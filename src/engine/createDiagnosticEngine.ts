@@ -2,7 +2,10 @@ import * as THREE from "three";
 import type { EngineHost } from "./contracts";
 import { designTokens } from "../design/tokens";
 
-export function mountDiagnosticEngine(element: HTMLElement): EngineHost {
+export function mountDiagnosticEngine(
+  element: HTMLElement,
+  onFrame?: (timestampMs: number) => void,
+): EngineHost {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -46,6 +49,7 @@ export function mountDiagnosticEngine(element: HTMLElement): EngineHost {
   };
   const render = (time: number) => {
     if (disposed) return;
+    onFrame?.(time);
     if (!reduced) {
       object.rotation.y = time * 0.00018;
       object.rotation.x = time * 0.00008;

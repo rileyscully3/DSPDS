@@ -112,6 +112,7 @@ export interface RecordingSnapshot {
   readonly markerCapacity: number;
   readonly markerCount: number;
   readonly overflowed: boolean;
+  readonly buttonsObserved: number;
   readonly inputCadence: InputCadenceSummary;
   readonly samples: readonly RawInputSample[];
   readonly interruptions: readonly InterruptionMarker[];

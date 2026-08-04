@@ -21,3 +21,16 @@ test("mounts the diagnostic and disposes it when navigating away", async () => {
   );
   expect(dispose).toHaveBeenCalledOnce();
 });
+
+test("loads the M1 input diagnostic from its hash route", () => {
+  location.hash = "#/input-diagnostic";
+  render(<App />);
+  expect(
+    screen.getByRole("heading", {
+      name: "Browser input integrity diagnostic",
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Start 20-second diagnostic" }),
+  ).toBeEnabled();
+});

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { SceneHost } from "./SceneHost";
-type Route = "diagnostic" | "boundaries";
+import { InputDiagnosticScreen } from "./InputDiagnosticScreen";
+type Route = "diagnostic" | "input" | "boundaries";
 function routeFromHash(): Route {
+  if (location.hash === "#/input-diagnostic") return "input";
   return location.hash === "#/boundaries" ? "boundaries" : "diagnostic";
 }
 export function App() {
@@ -12,7 +14,12 @@ export function App() {
     return () => removeEventListener("hashchange", onHash);
   }, []);
   const go = (next: Route) => {
-    location.hash = next === "diagnostic" ? "#/" : "#/boundaries";
+    location.hash =
+      next === "diagnostic"
+        ? "#/"
+        : next === "input"
+          ? "#/input-diagnostic"
+          : "#/boundaries";
   };
   return (
     <div className="shell">
@@ -23,7 +30,13 @@ export function App() {
             onClick={() => go("diagnostic")}
             aria-current={route === "diagnostic" ? "page" : undefined}
           >
-            Diagnostic
+            Engine diagnostic
+          </button>
+          <button
+            onClick={() => go("input")}
+            aria-current={route === "input" ? "page" : undefined}
+          >
+            Input diagnostic
           </button>
           <button
             onClick={() => go("boundaries")}
@@ -34,7 +47,9 @@ export function App() {
         </nav>
       </header>
       <main className="main">
-        {route === "diagnostic" ? (
+        {route === "input" ? (
+          <InputDiagnosticScreen />
+        ) : route === "diagnostic" ? (
           <>
             <div className="eyebrow">Milestone 0 · architecture proof</div>
             <h1>Real-time engine diagnostic</h1>
@@ -70,8 +85,9 @@ export function App() {
                 and disposal.
               </p>
               <p>
-                Input, scenarios, analysis, coaching, telemetry, and storage
-                remain deliberately deferred.
+                Input diagnostics now live behind their own typed boundary.
+                Scenarios, analysis, coaching, persistence, and later
+                milestones remain deliberately deferred.
               </p>
             </div>
           </>

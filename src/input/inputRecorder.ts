@@ -48,6 +48,7 @@ export class InputRecorder {
   private streamSequence = 0;
   private rejectedSampleCount = 0;
   private overflowed = false;
+  private buttonsObserved = 0;
 
   constructor(options: InputRecorderOptions = {}) {
     this.sampleCapacity = options.sampleCapacity ?? DEFAULT_SAMPLE_CAPACITY;
@@ -81,6 +82,7 @@ export class InputRecorder {
     this.streamSequence = 0;
     this.rejectedSampleCount = 0;
     this.overflowed = false;
+    this.buttonsObserved = 0;
     return this.captureId;
   }
 
@@ -130,6 +132,7 @@ export class InputRecorder {
       return false;
     }
     this.cadence.record(captureTimestampMs, suspicious);
+    this.buttonsObserved |= buttons;
     return true;
   }
 
@@ -158,6 +161,7 @@ export class InputRecorder {
     this.streamSequence = 0;
     this.rejectedSampleCount = 0;
     this.overflowed = false;
+    this.buttonsObserved = 0;
   }
 
   interrupt(
@@ -197,6 +201,7 @@ export class InputRecorder {
       markerCapacity: this.markerCapacity,
       markerCount: this.markers.length,
       overflowed: this.overflowed,
+      buttonsObserved: this.buttonsObserved,
       inputCadence: this.cadence.snapshot(
         this.rejectedSampleCount,
         this.overflowed,
