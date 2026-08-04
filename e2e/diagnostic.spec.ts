@@ -211,6 +211,15 @@ test("versioned capture download and synthetic fixture replay work", async ({
     schemaId: "dspds.m1-input-session",
     schemaVersion: 1,
   });
+  const downloadPath = await download.path();
+  if (!downloadPath) throw new Error("Expected a local download path.");
+  await page.locator('input[type="file"]').setInputFiles(downloadPath);
+  await expect(
+    page.getByRole("heading", { name: "Deterministic 2D path replay" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("1 samples · total dx 4 · total dy 2"),
+  ).toBeVisible();
 
   await page
     .getByRole("button", { name: "Load and replay synthetic fixture" })
@@ -231,6 +240,7 @@ test("versioned capture download and synthetic fixture replay work", async ({
 test("keyboard focus and repeated navigation retain one engine canvas", async ({
   page,
 }) => {
+  await installPointerLockMock(page);
   await page.goto("/#/input-diagnostic");
   await page.keyboard.press("Tab");
   await expect(page.locator("button:focus")).toHaveCount(1);
@@ -240,4 +250,18 @@ test("keyboard focus and repeated navigation retain one engine canvas", async ({
     await page.getByRole("button", { name: "Input diagnostic" }).click();
     await expect(page.locator(".scene-host canvas")).toHaveCount(1);
   }
+  await page
+    .getByRole("button", { name: "Start 20-second diagnostic" })
+    .click();
+  await page.evaluate(() => {
+    document.dispatchEvent(
+      new MouseEvent("mousemove", { movementX: 1, movementY: 1 }),
+    );
+  });
+  await expect(
+    page
+      .locator(".metric")
+      .filter({ hasText: "Accepted samples" })
+      .locator("strong"),
+  ).toHaveText("1");
 });

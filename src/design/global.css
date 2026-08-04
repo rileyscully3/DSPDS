@@ -223,6 +223,22 @@ h1 {
   border-color: var(--color-warn);
   color: #f5e6cc;
 }
+.file-action {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+}
+.file-action input {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+.file-action:has(input:focus-visible) {
+  outline: 3px solid var(--color-accent-light);
+  outline-offset: 3px;
+}
 .capability-panel {
   margin-top: 22px;
   border-top: 1px solid var(--color-divider);

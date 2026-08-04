@@ -168,6 +168,26 @@ export function assertM1SessionExport(
   ) {
     throw new Error("Malformed M1 export metadata.");
   }
+  if (
+    !["physical-browser-capture", "synthetic-fixture", "replay"].includes(
+      String(value.evidenceSource),
+    ) ||
+    !(
+      value.syntheticEvidenceNotice === null ||
+      typeof value.syntheticEvidenceNotice === "string"
+    ) ||
+    !["unadjusted", "adjusted", "synthetic"].includes(String(value.inputMode))
+  ) {
+    throw new Error("Malformed M1 evidence-source metadata.");
+  }
+  validateRecording(value.recording);
+  validatePointerLock(value.pointerLock);
+  validateCadence(value.inputCadence, "input");
+  validateCadence(value.renderCadence, "render");
+  validateValidity(value.validity);
+  validateEnvironment(value.environment);
+  validateSequenceOrder(value.samples, "sample");
+  validateSequenceOrder(value.interruptions, "marker");
   let previousSequence = 0;
   const ordered = [...value.samples, ...value.interruptions].sort(
     (left, right) =>
@@ -184,6 +204,9 @@ export function assertM1SessionExport(
   for (const marker of value.interruptions) validateMarker(marker);
   if (
     !isRecord(value.buffer) ||
+    !Number.isInteger(value.buffer.sampleCapacity) ||
+    !Number.isInteger(value.buffer.markerCapacity) ||
+    typeof value.buffer.overflowed !== "boolean" ||
     value.buffer.acceptedSampleCount !== value.samples.length ||
     value.buffer.markerCount !== value.interruptions.length
   ) {
@@ -195,6 +218,105 @@ export function assertM1SessionExport(
     !isFiniteNumber(value.gapPolicy.suspiciousGapMs)
   ) {
     throw new Error("M1 gap policy is missing or invalid.");
+  }
+}
+
+function validateRecording(value: unknown): void {
+  if (
+    !isRecord(value) ||
+    !["idle", "recording", "complete", "interrupted"].includes(
+      String(value.status),
+    ) ||
+    !isFiniteNumber(value.startedAtUnixMs) ||
+    !isFiniteNumber(value.startedAtPerformanceMs) ||
+    !isNullableFiniteNumber(value.endedAtUnixMs) ||
+    !isNullableFiniteNumber(value.endedAtPerformanceMs)
+  ) {
+    throw new Error("Malformed M1 recording metadata.");
+  }
+}
+
+function validatePointerLock(value: unknown): void {
+  if (
+    !isRecord(value) ||
+    typeof value.state !== "string" ||
+    typeof value.supported !== "boolean" ||
+    !(
+      value.activeMode === null ||
+      ["unadjusted", "adjusted", "synthetic"].includes(String(value.activeMode))
+    ) ||
+    typeof value.adjustedFallbackRequiresAction !== "boolean" ||
+    typeof value.detail !== "string"
+  ) {
+    throw new Error("Malformed M1 pointer-lock metadata.");
+  }
+}
+
+function validateCadence(value: unknown, label: string): void {
+  if (!isRecord(value)) throw new Error(`Malformed M1 ${label} cadence.`);
+  const numericKeys =
+    label === "input"
+      ? [
+          "acceptedSampleCount",
+          "intervalCount",
+          "eventsPerSecond",
+          "suspiciousGapCount",
+          "rejectedSampleCount",
+        ]
+      : ["frameCount", "intervalCount", "framesPerSecond", "longTaskCount"];
+  const nullableKeys =
+    label === "input"
+      ? ["medianIntervalMs", "maximumGapMs"]
+      : ["medianIntervalMs", "maximumFrameGapMs", "maximumLongTaskMs"];
+  if (
+    !numericKeys.every((key) => isFiniteNumber(value[key])) ||
+    !nullableKeys.every((key) => isNullableFiniteNumber(value[key])) ||
+    (label === "input" && typeof value.overflowed !== "boolean") ||
+    (label === "render" && typeof value.longTaskApiSupported !== "boolean")
+  ) {
+    throw new Error(`Malformed M1 ${label} cadence fields.`);
+  }
+}
+
+function validateValidity(value: unknown): void {
+  if (
+    !isRecord(value) ||
+    !["valid", "qualified", "interrupted", "invalid"].includes(
+      String(value.state),
+    ) ||
+    !Array.isArray(value.reasons) ||
+    !value.reasons.every((reason) => typeof reason === "string")
+  ) {
+    throw new Error("Malformed M1 validity metadata.");
+  }
+}
+
+function validateEnvironment(value: unknown): void {
+  if (
+    !isRecord(value) ||
+    typeof value.userAgent !== "string" ||
+    typeof value.platform !== "string" ||
+    typeof value.language !== "string" ||
+    !isNullableFiniteNumber(value.hardwareConcurrency) ||
+    !isFiniteNumber(value.viewportWidthPx) ||
+    !isFiniteNumber(value.viewportHeightPx) ||
+    !isFiniteNumber(value.devicePixelRatio)
+  ) {
+    throw new Error("Malformed M1 environment metadata.");
+  }
+}
+
+function validateSequenceOrder(
+  values: readonly unknown[],
+  label: string,
+): void {
+  let previous = 0;
+  for (const value of values) {
+    const sequence = readSequence(value, label);
+    if (!Number.isInteger(sequence) || sequence <= previous) {
+      throw new Error(`M1 ${label} records are not in stream order.`);
+    }
+    previous = sequence;
   }
 }
 
@@ -240,6 +362,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function isNullableFiniteNumber(value: unknown): value is number | null {
+  return value === null || isFiniteNumber(value);
 }
 
 function deepFreeze<T>(value: T): T {

@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 import syntheticFixture from "../test-support/fixtures/m1-synthetic-session.json";
 import {
   DEFAULT_DIAGNOSTIC_DURATION_MS,
@@ -12,6 +19,7 @@ import {
   collectEnvironmentMetadata,
   createM1SessionExport,
   parseM1Session,
+  type M1SessionExport,
 } from "../telemetry/m1Session";
 import { downloadM1Session } from "../telemetry/download";
 import {
@@ -32,7 +40,10 @@ export function InputDiagnosticScreen() {
     DEFAULT_DIAGNOSTIC_DURATION_MS,
   );
   const [lastExport, setLastExport] = useState<string | null>(null);
-  const [replay, setReplay] = useState<M1Replay | null>(null);
+  const [replaySession, setReplaySession] = useState<M1SessionExport | null>(
+    null,
+  );
+  const [replayError, setReplayError] = useState<string | null>(null);
   const [replaySpeed, setReplaySpeed] = useState(1);
 
   const refresh = useCallback(() => {
@@ -93,7 +104,8 @@ export function InputDiagnosticScreen() {
   const reset = () => {
     sessionRef.current?.reset();
     setLastExport(null);
-    setReplay(null);
+    setReplaySession(null);
+    setReplayError(null);
     refresh();
   };
   const exportCapture = () => {
@@ -111,14 +123,33 @@ export function InputDiagnosticScreen() {
   };
   const loadFixture = () => {
     const parsed = parseM1Session(JSON.stringify(syntheticFixture));
-    setReplay(replayM1Session(parsed));
+    setReplaySession(parsed);
+    setReplayError(null);
+  };
+  const loadReplayFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+    try {
+      setReplaySession(parseM1Session(await file.text()));
+      setReplayError(null);
+    } catch (error) {
+      setReplaySession(null);
+      setReplayError(
+        error instanceof Error ? error.message : "Replay file is invalid.",
+      );
+    } finally {
+      event.currentTarget.value = "";
+    }
   };
 
+  const replay = useMemo(
+    () => (replaySession ? replayM1Session(replaySession) : null),
+    [replaySession],
+  );
   const presentation = useMemo(() => {
-    if (!replay) return [];
-    const parsed = parseM1Session(JSON.stringify(syntheticFixture));
-    return createReplayPresentation(parsed, replaySpeed);
-  }, [replay, replaySpeed]);
+    if (!replaySession) return [];
+    return createReplayPresentation(replaySession, replaySpeed);
+  }, [replaySession, replaySpeed]);
 
   const recording = diagnostics?.recording;
   const pointerLock = diagnostics?.pointerLock;
@@ -291,6 +322,14 @@ export function InputDiagnosticScreen() {
             <button className="action" type="button" onClick={loadFixture}>
               Load and replay synthetic fixture
             </button>
+            <label className="action file-action">
+              Load replay JSON
+              <input
+                type="file"
+                accept="application/json,.json"
+                onChange={loadReplayFile}
+              />
+            </label>
             <button
               className="action"
               type="button"
@@ -301,6 +340,7 @@ export function InputDiagnosticScreen() {
             </button>
           </div>
           {lastExport ? <p>Downloaded: {lastExport}</p> : null}
+          {replayError ? <p role="alert">{replayError}</p> : null}
         </div>
 
         {replay ? (

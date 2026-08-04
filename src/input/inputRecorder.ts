@@ -94,6 +94,10 @@ export class InputRecorder {
     buttons: number,
   ): boolean {
     if (this.status !== "recording" || !this.inputMode) return false;
+    if (this.samples.length >= this.sampleCapacity) {
+      this.handleOverflow(captureTimestampMs);
+      return false;
+    }
     const previousTimestamp = this.samples.lastCaptureTimestampMs;
     const observedGapMs =
       previousTimestamp === null ? 0 : captureTimestampMs - previousTimestamp;
