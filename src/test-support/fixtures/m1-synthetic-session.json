@@ -1,0 +1,116 @@
+{
+  "schemaId": "dspds.m1-input-session",
+  "schemaVersion": 1,
+  "recorderVersion": "m1-recorder-v1",
+  "captureId": "fixture-m1-zigzag-v1",
+  "evidenceSource": "synthetic-fixture",
+  "syntheticEvidenceNotice": "Intentionally generated non-personal fixture. Synthetic browser data proves application logic only; it does not prove physical unadjusted-input quality.",
+  "recording": {
+    "status": "complete",
+    "startedAtUnixMs": 1785880800000,
+    "endedAtUnixMs": 1785880800012,
+    "startedAtPerformanceMs": 100,
+    "endedAtPerformanceMs": 112
+  },
+  "pointerLock": {
+    "state": "unlocked",
+    "supported": true,
+    "activeMode": null,
+    "adjustedFallbackRequiresAction": false,
+    "detail": "Synthetic fixture; no physical pointer lock was used."
+  },
+  "inputMode": "synthetic",
+  "buffer": {
+    "sampleCapacity": 16,
+    "acceptedSampleCount": 4,
+    "markerCapacity": 4,
+    "markerCount": 0,
+    "overflowed": false
+  },
+  "samples": [
+    {
+      "schemaVersion": 1,
+      "sequence": 1,
+      "eventTimestampMs": 100,
+      "captureTimestampMs": 100,
+      "dx": 4,
+      "dy": -2,
+      "buttons": 0,
+      "inputMode": "synthetic",
+      "flags": 0
+    },
+    {
+      "schemaVersion": 1,
+      "sequence": 2,
+      "eventTimestampMs": 104,
+      "captureTimestampMs": 104,
+      "dx": -7,
+      "dy": 3,
+      "buttons": 1,
+      "inputMode": "synthetic",
+      "flags": 0
+    },
+    {
+      "schemaVersion": 1,
+      "sequence": 3,
+      "eventTimestampMs": 108,
+      "captureTimestampMs": 108,
+      "dx": 5,
+      "dy": 6,
+      "buttons": 1,
+      "inputMode": "synthetic",
+      "flags": 0
+    },
+    {
+      "schemaVersion": 1,
+      "sequence": 4,
+      "eventTimestampMs": 112,
+      "captureTimestampMs": 112,
+      "dx": -2,
+      "dy": -7,
+      "buttons": 0,
+      "inputMode": "synthetic",
+      "flags": 0
+    }
+  ],
+  "interruptions": [],
+  "inputCadence": {
+    "acceptedSampleCount": 4,
+    "intervalCount": 3,
+    "eventsPerSecond": 250,
+    "medianIntervalMs": 4,
+    "maximumGapMs": 4,
+    "suspiciousGapCount": 0,
+    "rejectedSampleCount": 0,
+    "overflowed": false
+  },
+  "renderCadence": {
+    "frameCount": 2,
+    "intervalCount": 1,
+    "framesPerSecond": 60,
+    "medianIntervalMs": 16.6666666667,
+    "maximumFrameGapMs": 16.6666666667,
+    "longTaskCount": 0,
+    "maximumLongTaskMs": null,
+    "longTaskApiSupported": false
+  },
+  "gapPolicy": {
+    "id": "m1-operational-gap-v1",
+    "version": 1,
+    "suspiciousGapMs": 50,
+    "classification": "operational-browser-input-heuristic"
+  },
+  "validity": {
+    "state": "valid",
+    "reasons": []
+  },
+  "environment": {
+    "userAgent": "synthetic-fixture",
+    "platform": "synthetic",
+    "language": "en",
+    "hardwareConcurrency": null,
+    "viewportWidthPx": 1920,
+    "viewportHeightPx": 1080,
+    "devicePixelRatio": 1
+  }
+}

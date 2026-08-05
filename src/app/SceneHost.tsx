@@ -1,11 +1,14 @@
 import { useEffect, useRef } from "react";
 import { mountDiagnosticEngine } from "../engine/createDiagnosticEngine";
-export function SceneHost() {
+export interface SceneHostProps {
+  readonly onFrame?: (timestampMs: number) => void;
+}
+export function SceneHost({ onFrame }: SceneHostProps) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const engine = mountDiagnosticEngine(ref.current!);
+    const engine = mountDiagnosticEngine(ref.current!, onFrame);
     return () => engine.dispose();
-  }, []);
+  }, [onFrame]);
   return (
     <div
       ref={ref}
