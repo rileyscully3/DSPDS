@@ -17,6 +17,7 @@ import {
   validateImport,
 } from "../storage/exportImport";
 import type {
+  ExportBundle,
   EquipmentProfile,
   RawInputSample,
   SessionRecord,
@@ -24,7 +25,12 @@ import type {
   TrialRecord,
   UserProfile,
 } from "../telemetry/schemas";
-import { TrainingScene } from "./TrainingScene";
+import {
+  TrainingScene,
+  type CaptureComplete,
+  type CaptureEvidence,
+} from "./TrainingScene";
+import { captureEligibility } from "../input/eligibility";
 
 type Route =
   | "setup"
@@ -100,7 +106,7 @@ export function App() {
   const [trials, setTrials] = useState<TrialRecord[]>([]);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [models, setModels] = useState<SpatialModelSnapshot[]>([]);
-  const [scenarioIndex, setScenarioIndex] = useState(0);
+
   const [notice, setNotice] = useState<string | null>(null);
   const [formRep, setFormRep] = useState(0);
   const go = (r: Route) => {
@@ -117,7 +123,11 @@ export function App() {
         setRepo(r);
         const d = await r.snapshot();
         setProfile(d.profiles[0] ?? null);
-        setEquipment(d.equipment[0] ?? null);
+        setEquipment(
+          d.equipment.find((e) => e.id === d.profiles[0]?.activeEquipmentId) ??
+            d.equipment[0] ??
+            null,
+        );
         setTrials(d.trials);
         setSessions(d.sessions);
         setModels(d.models);
@@ -129,7 +139,17 @@ export function App() {
   }, []);
   const seed = "formal-release-protocol-1";
   const protocol = useMemo(() => generateProtocol(seed), []);
-  const current = protocol[scenarioIndex % protocol.length]!;
+  const mode = route === "practice" ? "practice" : "formal";
+  const activeSession = sessions.find(
+    (s) =>
+      s.kind === "dspds" &&
+      s.status === "in-progress" &&
+      s.mode === mode &&
+      s.protocolVersion === PROTOCOL_VERSION &&
+      JSON.stringify(s.equipment) === JSON.stringify(equipment),
+  );
+  const scenarioIndex = activeSession?.trialIds.length ?? 0;
+  const current = protocol[Math.min(scenarioIndex, protocol.length - 1)]!;
   const saveSetup = async (form: FormData) => {
     const userId = id("profile"),
       p: UserProfile = {
@@ -164,19 +184,24 @@ export function App() {
     }
   };
   const completeTrial = useCallback(
-    async (samples: RawInputSample[], reason: "click" | "technicalInvalid") => {
+    async (
+      samples: RawInputSample[],
+      reason: TrialRecord["completionReason"],
+      evidence?: CaptureEvidence,
+    ) => {
       if (!equipment) return;
-      const sessionId =
-        sessions.find((s) => s.kind === "dspds" && s.status === "in-progress")
-          ?.id ?? id("session");
+      if (!repo || scenarioIndex >= protocol.length) return;
+      const sessionId = activeSession?.id ?? id("session");
       const mode = route === "practice" ? "practice" : "formal";
-      const valid = reason !== "technicalInvalid" && samples.length > 0;
+      const eligibility = evidence ?? captureEligibility(samples, reason);
+      const valid = eligibility.valid;
       const trial: TrialRecord = {
         schemaVersion: 1,
         id: id("trial"),
         sessionId,
         scenario: current.scenario,
-        scenarioVersion: "1.0.0",
+        scenarioVersion: "2.0.0",
+        ...(evidence ? { capture: evidence } : {}),
         mode,
         seed,
         intended: {
@@ -185,16 +210,10 @@ export function App() {
           path: current.path,
         },
         completionMode: "autoWithClickFailsafe",
-        completionReason: reason === "click" ? "click" : "technicalInvalid",
+        completionReason: reason,
         rawSamples: samples,
         valid,
-        exclusionReasons: valid
-          ? []
-          : [
-              reason === "technicalInvalid"
-                ? "pointer-lock-or-focus-interruption"
-                : "no-browser-events",
-            ],
+        exclusionReasons: eligibility.exclusions,
         metrics: valid ? displacementMetrics(current, samples) : [],
         createdAt: now(),
       };
@@ -221,14 +240,26 @@ export function App() {
         recovery: { ...session.recovery, lastCompletedTrialId: trial.id },
       };
       try {
-        await repo?.put("trials", trial);
-        await repo?.put("sessions", session);
+        const recovery = {
+          id: session.id,
+          schemaVersion: 1,
+          session,
+          updatedAt: now(),
+        };
+        await repo.atomic(
+          [
+            { store: "trials", value: trial, addOnly: true },
+            { store: "sessions", value: session },
+            { store: "recovery", value: recovery },
+          ],
+          { sessionId: session.id, trialCount: scenarioIndex },
+        );
         setTrials((v) => [...v, trial]);
         setSessions((v) => [
           ...v.filter((s) => s.id !== session!.id),
           session!,
         ]);
-        setScenarioIndex((i) => i + 1);
+
         setNotice(
           valid
             ? "Trial saved. No result is shown during this formal block."
@@ -238,27 +269,72 @@ export function App() {
         setStorageError(`Trial was not saved: ${String(e)}`);
       }
     },
-    [equipment, sessions, route, current, repo],
+    [
+      equipment,
+      sessions,
+      route,
+      current,
+      repo,
+      activeSession,
+      scenarioIndex,
+      protocol.length,
+    ],
   );
   const finishAssessment = async () => {
     if (!equipment) return;
-    const session = sessions.find(
-      (s) =>
-        s.kind === "dspds" && s.mode === "formal" && s.status === "in-progress",
-    );
+    const session = activeSession;
     if (!session) {
       setNotice("No formal trials are available.");
       return;
     }
+    if (
+      session.mode !== "formal" ||
+      session.trialIds.length !== protocol.length
+    ) {
+      setNotice(
+        "Incomplete work is saved. Complete every controlled trial before creating an official assessment.",
+      );
+      return;
+    }
     const all = trials.filter((t) => t.sessionId === session.id);
+    if (
+      all.length !== protocol.length ||
+      session.trialIds.some((trialId, i) => {
+        const t = all.find((t) => t.id === trialId),
+          expected = protocol[i]!;
+        return (
+          !t ||
+          t.mode !== "formal" ||
+          t.scenario !== expected.scenario ||
+          t.intended.xDeg !== expected.xDeg ||
+          t.intended.yDeg !== expected.yDeg
+        );
+      })
+    ) {
+      setStorageError(
+        "Protocol evidence does not match the session; completion withheld.",
+      );
+      return;
+    }
     const completed = {
       ...session,
       status: "completed" as const,
       completedAt: now(),
     };
-    const model = buildModel(session.id, all, equipment.countsPerCm);
-    await repo?.put("sessions", completed);
-    await repo?.put("models", model);
+    const model = buildModel(
+      session.id,
+      all,
+      session.equipment.verification === "physically-verified"
+        ? session.equipment.countsPerCm
+        : null,
+    );
+    await repo?.atomic(
+      [
+        { store: "sessions", value: completed },
+        { store: "models", value: model, addOnly: true },
+      ],
+      { sessionId: session.id, trialCount: protocol.length },
+    );
     setSessions((v) => v.map((s) => (s.id === completed.id ? completed : s)));
     setModels((v) => [...v, model]);
     go("results");
@@ -306,6 +382,7 @@ export function App() {
           <Assessment
             mode={route === "dspds" ? "formal" : "practice"}
             geometry={current}
+            equipment={equipment}
             index={scenarioIndex}
             total={protocol.length}
             onComplete={completeTrial}
@@ -617,6 +694,7 @@ function Diagnostic({
 function Assessment({
   mode,
   geometry,
+  equipment,
   index,
   total,
   onComplete,
@@ -624,9 +702,10 @@ function Assessment({
 }: {
   mode: "formal" | "practice";
   geometry: ReturnType<typeof generateProtocol>[number];
+  equipment: EquipmentProfile | null;
   index: number;
   total: number;
-  onComplete: (s: RawInputSample[], r: "click" | "technicalInvalid") => void;
+  onComplete: CaptureComplete;
   onFinish: () => void;
 }) {
   const names = {
@@ -656,23 +735,29 @@ function Assessment({
                 : "Physically mirror the readable target or automatic camera motion. Your input cannot steer the view."}
         </p>
         <span className="progress">
-          Trial {index + 1} of {total}
+          Trial {Math.min(index + 1, total)} of {total}
         </span>
       </div>
-      <TrainingScene
-        key={`${mode}-${index}`}
-        options={{
-          scenario: geometry.scenario,
-          formal: mode === "formal",
-          target: { xDeg: geometry.xDeg, yDeg: geometry.yDeg },
-          viewMode: "firstPerson",
-        }}
-        onComplete={onComplete}
-      />
+      {index < total && (
+        <TrainingScene
+          key={`${mode}-${index}`}
+          options={{
+            verticalFovDeg: equipment?.verticalFovDeg,
+            degreesPerRawCount: equipment?.degreesPerRawCount,
+            scenario: geometry.scenario,
+            formal: mode === "formal",
+            target: { xDeg: geometry.xDeg, yDeg: geometry.yDeg },
+            viewMode: "firstPerson",
+          }}
+          onComplete={onComplete}
+        />
+      )}
       <div className="scene-actions">
-        <button className="btn" onClick={onFinish}>
-          Finish current formal assessment
-        </button>
+        {mode === "formal" && (
+          <button className="btn" onClick={onFinish} disabled={index < total}>
+            Complete formal assessment
+          </button>
+        )}
         <p>
           No reticle, endpoint, live score, sensitivity estimate, or corrective
           coaching is shown during formal capture.
@@ -729,7 +814,7 @@ function Results({
         </section>
         <section className="card">
           <span className="tag tag--neutral">Derived finding</span>
-          <h2>Implied physical range</h2>
+          <h2>Observed physical spread</h2>
           {model.impliedCmPer360 ? (
             <>
               <strong className="range">
@@ -737,8 +822,10 @@ function Results({
                 {model.impliedCmPer360.high.toFixed(1)} cm/360
               </strong>
               <p>
-                Central estimate {model.impliedCmPer360.central.toFixed(1)}{" "}
-                cm/360. This is not an ideal-sensitivity prescription.
+                Observed median {model.impliedCmPer360.central.toFixed(1)}{" "}
+                cm/360.{" "}
+                {model.rangeMeaning ??
+                  "Legacy experimental range: unsupported; not corrected evidence."}
               </p>
             </>
           ) : (
@@ -771,7 +858,12 @@ function Results({
                 "line",
               ] as const
             ).map((s) => {
-              const rows = trials.filter((t) => t.scenario === s);
+              const rows = trials.filter(
+                (t) =>
+                  t.scenario === s &&
+                  t.mode === "formal" &&
+                  model.sourceFormalAssessmentIds.includes(t.sessionId),
+              );
               return (
                 <tr key={s}>
                   <td>{s}</td>
@@ -1104,18 +1196,18 @@ function DataManager({
   onRefresh: () => void;
 }) {
   const [preview, setPreview] = useState<string>("");
+  const [pending, setPending] = useState<ExportBundle | null>(null);
   const load = async (file: File) => {
     if (!repo) return;
     try {
       const bundle = validateImport(JSON.parse(await file.text()));
       const p = await previewImport(repo, bundle);
       setPreview(
-        `${Object.values(p.additions).reduce((a, b) => a + Number(b), 0)} additions; ${p.conflicts.length} conflicts will be preserved, not overwritten.`,
+        `${Object.values(p.additions).reduce((a, b) => a + Number(b), 0)} additions; ${p.conflicts.length} conflicting IDs. Conflicts block the entire import.`,
       );
-      await importMissing(repo, bundle);
-      await onRefresh();
-      onNotice("Import committed. Existing conflicting IDs were unchanged.");
+      setPending(p.conflicts.length ? null : bundle);
     } catch (e) {
+      setPending(null);
       setPreview(`Import rejected without changing data: ${String(e)}`);
     }
   };
@@ -1174,6 +1266,26 @@ function DataManager({
             />
           </label>
           {preview && <p role="status">{preview}</p>}
+          {pending && (
+            <button
+              className="btn"
+              onClick={async () => {
+                try {
+                  if (!repo) return;
+                  await importMissing(repo, pending);
+                  setPending(null);
+                  await onRefresh();
+                  onNotice("Import committed atomically.");
+                } catch (e) {
+                  setPreview(
+                    `Import failed; transaction committed no new records: ${String(e)}`,
+                  );
+                }
+              }}
+            >
+              Commit validated import
+            </button>
+          )}
         </section>
       </div>
       <section className="card warning">

@@ -30,7 +30,7 @@ export function integrate(samples: RawInputSample[]) {
   return samples.reduce(
     (a, s) => ({
       x: a.x + s.dx,
-      y: a.y + s.dy,
+      y: a.y - s.dy,
       distance: a.distance + Math.hypot(s.dx, s.dy),
     }),
     { x: 0, y: 0, distance: 0 },
@@ -101,82 +101,114 @@ export function stoppingTail(samples: RawInputSample[]) {
     .filter((s) => s.timestampMs >= end - 150)
     .reduce((n, s) => n + Math.hypot(s.dx, s.dy), 0);
 }
+/** Descriptive only: no validated confidence interval or sensitivity recommendation. */
 export function buildModel(
   assessmentId: string,
   trials: TrialRecord[],
   countsPerCm: number | null,
 ): SpatialModelSnapshot {
-  const valid = trials.filter((t) => t.mode === "formal" && t.valid);
-  const cpds = valid
-    .flatMap((t) =>
-      t.metrics
-        .filter((m) => m.id === "relativeCountsPerDegree" && m.value !== null)
-        .map((m) => m.value!),
-    )
-    .filter((v) => v > 0);
-  const central = median(cpds);
+  const valid = trials.filter(
+    (t) =>
+      t.sessionId === assessmentId &&
+      t.mode === "formal" &&
+      t.valid &&
+      t.scenarioVersion === "2.0.0" &&
+      t.scenario === "single" &&
+      t.capture?.policyVersion === "capture-2.0.0" &&
+      t.capture.valid &&
+      !t.capture.qualifications.length &&
+      t.rawSamples.some(
+        (s) =>
+          s.validity === "valid" &&
+          s.pointerLocked &&
+          Math.hypot(s.dx, s.dy) > 0,
+      ),
+  );
+  const evidence = valid.flatMap((t) => {
+    const value = displacementMetrics(t.intended, t.rawSamples).find(
+      (m) => m.id === "relativeCountsPerDegree",
+    )?.value;
+    return value !== null &&
+      value !== undefined &&
+      Number.isFinite(value) &&
+      value > 0
+      ? [{ trial: t, value }]
+      : [];
+  });
+  const cpds = evidence.map((e) => e.value),
+    central = median(cpds);
   const by = (lo: number, hi: number) =>
     median(
-      valid
-        .filter((t) => {
-          const a = Math.hypot(t.intended.xDeg, t.intended.yDeg);
-          return a >= lo && a <= hi;
+      evidence
+        .filter((e) => {
+          const a = Math.hypot(e.trial.intended.xDeg, e.trial.intended.yDeg);
+          return a >= lo - 0.001 && a <= hi + 0.001;
         })
-        .flatMap((t) =>
-          t.metrics
-            .filter(
-              (m) => m.id === "relativeCountsPerDegree" && m.value !== null,
-            )
-            .map((m) => m.value!),
-        ),
+        .map((e) => e.value),
     );
+  const bands = {
+    central,
+    micro: by(2, 4),
+    small: by(8, 12),
+    medium: by(18, 27),
+    large: by(40, 50),
+  };
+  const completeBands = Object.values(bands).every((v) => v !== null);
   const physical =
-    central !== null && countsPerCm
-      ? impliedCmPer360(central, countsPerCm)
-      : null;
-  const confidence =
-    valid.length >= 40 ? "High" : valid.length >= 12 ? "Moderate" : "Low";
+    central !== null &&
+    countsPerCm !== null &&
+    Number.isFinite(countsPerCm) &&
+    countsPerCm > 0 &&
+    cpds.length >= 2;
+  const groups = new Map<string, typeof evidence>();
+  for (const e of evidence) {
+    const t = e.trial,
+      key = `${t.intended.xDeg.toFixed(4)},${t.intended.yDeg.toFixed(4)}:${t.completionReason}`;
+    groups.set(key, [...(groups.get(key) ?? []), e]);
+  }
   return {
     schemaVersion: 1,
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     sourceFormalAssessmentIds: [assessmentId],
     latestAssessmentId: assessmentId,
-    confidence,
+    analysisVersion: ANALYSIS_VERSION,
+    sourceTrialIds: evidence.map((e) => e.trial.id),
+    confidence: "Low",
     sufficiency:
-      valid.length >= 40
-        ? "sufficient"
-        : valid.length
-          ? "provisional"
-          : "insufficient",
-    countsPerDegree: {
-      central,
-      micro: by(2, 4),
-      small: by(8, 12),
-      medium: by(18, 27),
-      large: by(40, 50),
-    },
-    impliedCmPer360:
-      physical === null
-        ? null
-        : { low: physical * 0.9, central: physical, high: physical * 1.1 },
-    findings:
-      central === null
-        ? [
-            {
-              text: "There is not enough valid displacement evidence to describe the spatial model.",
-              metricIds: [],
-              sampleCount: 0,
-              confidence: "Low",
-            },
-          ]
-        : [
-            {
-              text: "Your open-loop responses form a provisional spatial scale; inspect direction and amplitude evidence before drawing conclusions.",
-              metricIds: ["relativeCountsPerDegree", "orthogonalError"],
-              sampleCount: valid.length,
-              confidence,
-            },
-          ],
+      central === null || !completeBands ? "insufficient" : "provisional",
+    countsPerDegree: bands,
+    impliedCmPer360: physical
+      ? {
+          low: impliedCmPer360(Math.min(...cpds), countsPerCm!)!,
+          central: impliedCmPer360(central!, countsPerCm!)!,
+          high: impliedCmPer360(Math.max(...cpds), countsPerCm!)!,
+        }
+      : null,
+    rangeMeaning:
+      "Observed minimum�maximum across eligible single-target responses; not uncertainty of the median or a recommended sensitivity range.",
+    conditions: [...groups.entries()].map(([condition, rows]) => {
+      const values = rows.map((r) => r.value),
+        center = median(values)!;
+      return {
+        condition,
+        trialIds: rows.map((r) => r.trial.id),
+        count: rows.length,
+        median: center,
+        mad: median(values.map((v) => Math.abs(v - center)))!,
+        unit: "raw count/deg",
+      };
+    }),
+    findings: [
+      {
+        text:
+          central === null
+            ? "Insufficient eligible displacement evidence. Legacy, interrupted, practice, fallback, and gap-qualified input do not support this estimate."
+            : "Descriptive single-target scale only. Confidence remains low: cross-scenario agreement and test-retest reliability are not established. Missing conditions remain insufficient.",
+        metricIds: central === null ? [] : ["relativeCountsPerDegree"],
+        sampleCount: cpds.length,
+        confidence: "Low",
+      },
+    ],
   };
 }

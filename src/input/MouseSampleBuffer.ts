@@ -3,14 +3,15 @@ import type {
   RawInputSample,
   ValidityFlag,
 } from "../telemetry/schemas";
+/** Append-only bounded capture: capacity failure must never overwrite evidence. */
 export class MouseSampleBuffer {
   private readonly samples: RawInputSample[];
-  private start = 0;
   private size = 0;
   private seq = 0;
   overflowCount = 0;
   constructor(readonly capacity = 131072) {
-    if (capacity < 1) throw new Error("capacity must be positive");
+    if (!Number.isInteger(capacity) || capacity < 1)
+      throw new Error("capacity must be a positive integer");
     this.samples = new Array(capacity);
   }
   append(
@@ -21,13 +22,12 @@ export class MouseSampleBuffer {
     pointerLocked: boolean,
     inputMode: InputMode,
     validity: ValidityFlag = "valid",
-  ) {
-    const index = (this.start + this.size) % this.capacity;
-    if (this.size === this.capacity) {
-      this.start = (this.start + 1) % this.capacity;
+  ): RawInputSample | null {
+    if (this.size === this.capacity || this.overflowCount > 0) {
       this.overflowCount++;
-    } else this.size++;
-    this.samples[index] = {
+      return null;
+    }
+    const sample = {
       sequence: this.seq++,
       timestampMs,
       dx,
@@ -35,21 +35,19 @@ export class MouseSampleBuffer {
       buttons,
       pointerLocked,
       inputMode,
-      validity:
-        this.overflowCount && validity === "valid" ? "overflow" : validity,
+      validity,
     };
+    this.samples[this.size++] = sample;
+    return sample;
   }
   marker(timestampMs: number, validity: Exclude<ValidityFlag, "valid">) {
-    this.append(timestampMs, 0, 0, 0, false, "unlocked", validity);
+    return this.append(timestampMs, 0, 0, 0, false, "unlocked", validity);
   }
   snapshot() {
-    return Array.from({ length: this.size }, (_, i) => ({
-      ...this.samples[(this.start + i) % this.capacity]!,
-    }));
+    return this.samples.slice(0, this.size).map((s) => ({ ...s }));
   }
   drain() {
     const value = this.snapshot();
-    this.start = 0;
     this.size = 0;
     return value;
   }

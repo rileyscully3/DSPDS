@@ -38,5 +38,5 @@ export const DEFAULTS = {
 } as const;
 export const APP_VERSION = "1.0.0-experiment";
 export const SCHEMA_VERSION = 1;
-export const PROTOCOL_VERSION = "dspds-1.0.0";
-export const ANALYSIS_VERSION = "analysis-1.0.0-provisional";
+export const PROTOCOL_VERSION = "dspds-2.0.0";
+export const ANALYSIS_VERSION = "analysis-2.0.0-descriptive";

@@ -40,7 +40,10 @@ for (const viewport of [
     await page.screenshot({
       path: `screenshots/dspds-practice-${viewport.width}x${viewport.height}.png`,
     });
-    await page.getByRole("button", { name: "Form Blend" }).click();
+    await page
+      .getByRole("navigation", { name: "Primary navigation" })
+      .getByRole("button", { name: "Form Blend", exact: true })
+      .click();
     await expect(
       page.getByText(/Assistance changes displayed camera output only/),
     ).toBeVisible();

@@ -70,6 +70,15 @@ export interface TrialRecord {
   };
   completionMode: CompletionMode;
   completionReason: "settled" | "click" | "timeout" | "technicalInvalid";
+  capture?: {
+    policyVersion: string;
+    valid: boolean;
+    exclusions: string[];
+    qualifications: string[];
+    overflow: number;
+    startedAtMs: number;
+    endedAtMs: number;
+  };
   rawSamples: RawInputSample[];
   displayedTrace?: DisplaySample[];
   assistance?: Assistance;
@@ -97,6 +106,17 @@ export interface SpatialModelSnapshot {
   schemaVersion: 1;
   id: string;
   createdAt: string;
+  analysisVersion?: string;
+  sourceTrialIds?: string[];
+  rangeMeaning?: string;
+  conditions?: Array<{
+    condition: string;
+    trialIds: string[];
+    count: number;
+    median: number;
+    mad: number;
+    unit: string;
+  }>;
   sourceFormalAssessmentIds: string[];
   latestAssessmentId: string;
   confidence: "Low" | "Moderate" | "High";

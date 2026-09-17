@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { targetOnCameraPlane } from "./geometry";
 import type { ScenarioId, Assistance } from "../telemetry/schemas";
 import { designTokens } from "../design/tokens";
 import type { EngineHost } from "./contracts";
@@ -7,7 +8,9 @@ export interface TrainingSceneOptions {
   formal: boolean;
   target: { xDeg: number; yDeg: number };
   viewMode: "firstPerson" | "thirdPerson";
-  assistance?: Assistance;
+  assistance?: Assistance | undefined;
+  verticalFovDeg?: number | undefined;
+  degreesPerRawCount?: number | null | undefined;
 }
 export function mountTrainingEngine(
   element: HTMLElement,
@@ -21,7 +24,12 @@ export function mountTrainingEngine(
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(designTokens.color.sceneSky);
   scene.fog = new THREE.Fog(0x161826, 8, 32);
-  const camera = new THREE.PerspectiveCamera(90, 1, 0.1, 60);
+  const camera = new THREE.PerspectiveCamera(
+    options.verticalFovDeg ?? 90,
+    1,
+    0.1,
+    60,
+  );
   camera.position.set(0, 2, 6);
   const room = new THREE.Mesh(
     new THREE.BoxGeometry(30, 12, 24),
@@ -50,11 +58,6 @@ export function mountTrainingEngine(
     ),
     targetMaterial,
   );
-  target.position.set(
-    Math.tan((options.target.xDeg * Math.PI) / 180) * 10,
-    2 + Math.tan((options.target.yDeg * Math.PI) / 180) * 10,
-    -10,
-  );
   scene.add(target);
   let capsule: THREE.Mesh | undefined;
   if (options.viewMode === "thirdPerson") {
@@ -71,11 +74,14 @@ export function mountTrainingEngine(
     camera.position.set(0, 1.1, 3.2);
     camera.rotation.x = (-4 * Math.PI) / 180;
   }
+  target.position.copy(
+    targetOnCameraPlane(camera, options.target.xDeg, options.target.yDeg),
+  );
   if (options.scenario === "line") {
     target.visible = false;
     const line = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 2, -9.8),
+        targetOnCameraPlane(camera, 0, 0),
         target.position.clone(),
       ]),
       new THREE.LineBasicMaterial({ color: 0x9397ab }),

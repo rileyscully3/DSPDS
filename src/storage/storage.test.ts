@@ -23,7 +23,7 @@ describe("versioned persistence", () => {
       format: "form-blend-dspds-export",
       schemaVersion: 1,
       appVersion: "1",
-      exportedAt: "now",
+      exportedAt: "2026-09-17T00:00:00.000Z",
       scope: "full",
       entities: {
         profiles: [],
@@ -32,8 +32,46 @@ describe("versioned persistence", () => {
         trials: [],
         models: [],
       },
-      counts: {},
+      counts: { profiles: 0, equipment: 0, sessions: 0, trials: 0, models: 0 },
     };
     expect(validateImport(value).entities.trials).toEqual([]);
+  });
+
+  it("rejects unsupported entity versions and broken references", () => {
+    const base = {
+      format: "form-blend-dspds-export",
+      schemaVersion: 1,
+      appVersion: "1",
+      exportedAt: "2026-09-17T00:00:00.000Z",
+      scope: "full",
+      entities: {
+        profiles: [],
+        equipment: [],
+        sessions: [],
+        trials: [],
+        models: [],
+      },
+      counts: { profiles: 0, equipment: 0, sessions: 0, trials: 0, models: 0 },
+    };
+    expect(() =>
+      validateImport({
+        ...base,
+        entities: {
+          ...base.entities,
+          profiles: [
+            {
+              id: "p",
+              schemaVersion: 99,
+              displayName: "Player",
+              createdAt: base.exportedAt,
+              updatedAt: base.exportedAt,
+              activeEquipmentId: "missing",
+              preferences: { reducedMotion: false, textScale: 1 },
+            },
+          ],
+        },
+        counts: { ...base.counts, profiles: 1 },
+      }),
+    ).toThrow(/schemaVersion/);
   });
 });

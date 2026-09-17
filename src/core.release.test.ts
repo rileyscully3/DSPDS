@@ -43,8 +43,8 @@ describe("first release evidence contracts", () => {
     b.append(2, 3, 0, 0, true, "unadjusted");
     expect(b.overflowCount).toBe(1);
     expect(b.snapshot()).toMatchObject([
-      { dx: 2 },
-      { dx: 3, validity: "overflow" },
+      { dx: 1 },
+      { dx: 2, validity: "valid" },
     ]);
   });
   it("interrupts rather than completing a partial formal trial", () => {
@@ -102,9 +102,18 @@ describe("first release evidence contracts", () => {
     const base = {
       schemaVersion: 1 as const,
       id: "t",
-      sessionId: "s",
+      sessionId: "assessment",
       scenario: "single" as const,
-      scenarioVersion: "1",
+      scenarioVersion: "2.0.0",
+      capture: {
+        policyVersion: "capture-2.0.0",
+        valid: true,
+        exclusions: [],
+        qualifications: [],
+        overflow: 0,
+        startedAtMs: 0,
+        endedAtMs: 200,
+      },
       seed: "s",
       intended: { xDeg: 10, yDeg: 0 },
       completionMode: "click" as const,

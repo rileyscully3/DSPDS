@@ -1,3 +1,4 @@
+import { validateEntities } from "./validation";
 import { APP_VERSION, SCHEMA_VERSION } from "../config/defaults";
 import type { ExportBundle } from "../telemetry/schemas";
 import type { Repository } from "./db";
@@ -34,55 +35,62 @@ export function validateImport(value: unknown): ExportBundle {
     throw new Error(
       `Schema ${String(b.schemaVersion)} is not supported; no data was changed.`,
     );
-  if (
-    !b.entities ||
-    !Array.isArray(b.entities.profiles) ||
-    !Array.isArray(b.entities.equipment) ||
-    !Array.isArray(b.entities.sessions) ||
-    !Array.isArray(b.entities.trials) ||
-    !Array.isArray(b.entities.models)
-  )
-    throw new Error("Import is missing required entity collections.");
-  for (const group of Object.values(b.entities))
-    for (const entity of group)
-      if (
-        !entity ||
-        typeof entity !== "object" ||
-        !("id" in entity) ||
-        !("schemaVersion" in entity)
-      )
-        throw new Error(
-          "Import contains an unversioned or unidentified entity.",
-        );
-  return structuredClone(b as ExportBundle);
+  return validateEntities(value);
 }
+
 export async function previewImport(repo: Repository, bundle: ExportBundle) {
   const current = await repo.snapshot(),
-    conflicts: string[] = [];
+    conflicts: string[] = [],
+    identical: string[] = [];
   for (const [name, values] of Object.entries(bundle.entities) as Array<
     [keyof typeof bundle.entities, Array<{ id: string }>]
   >) {
-    const ids = new Set(current[name].map((x) => x.id));
-    for (const value of values)
-      if (ids.has(value.id)) conflicts.push(`${name}:${value.id}`);
+    for (const value of values) {
+      const existing = current[name].find((x) => x.id === value.id);
+      if (existing)
+        (canonical(existing) === canonical(value) ? identical : conflicts).push(
+          `${name}:${value.id}`,
+        );
+    }
   }
   return {
     additions: Object.fromEntries(
       Object.entries(bundle.entities).map(([k, v]) => [
         k,
-        v.length - conflicts.filter((c) => c.startsWith(`${k}:`)).length,
+        v.length -
+          identical.filter((x) => x.startsWith(`${k}:`)).length -
+          conflicts.filter((x) => x.startsWith(`${k}:`)).length,
       ]),
     ),
     conflicts,
+    identical,
   };
 }
+function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (value && typeof value === "object")
+    return `{${Object.entries(value)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`)
+      .join(",")}}`;
+  return JSON.stringify(value);
+}
 export async function importMissing(repo: Repository, bundle: ExportBundle) {
-  const preview = await previewImport(repo, bundle);
-  for (const [name, values] of Object.entries(bundle.entities) as Array<
-    [keyof typeof bundle.entities, Array<{ id: string }>]
-  >)
-    for (const value of values)
-      if (!preview.conflicts.includes(`${name}:${value.id}`))
-        await repo.put(name, value);
+  const valid = validateImport(bundle),
+    preview = await previewImport(repo, valid);
+  if (preview.conflicts.length)
+    throw new Error(
+      "Conflicting IDs have different content. Import rejected as a whole to preserve references.",
+    );
+  const entries = Object.entries(valid.entities).flatMap(([store, values]) =>
+    values
+      .filter((value) => !preview.identical.includes(`${store}:${value.id}`))
+      .map((value) => ({
+        store: store as keyof typeof valid.entities,
+        value,
+        addOnly: true,
+      })),
+  );
+  if (entries.length) await repo.atomic(entries);
   return preview;
 }

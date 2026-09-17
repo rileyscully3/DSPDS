@@ -52,6 +52,52 @@ export class Repository {
         reject(tx.error ?? new Error(`Save to ${store} was aborted.`));
     });
   }
+  atomic(
+    entries: Array<{
+      store: StoreName;
+      value: { id: string };
+      addOnly?: boolean;
+    }>,
+    guard?: { sessionId: string; trialCount: number },
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const stores = [
+        ...new Set<StoreName>([
+          ...entries.map((e) => e.store),
+          ...(guard ? ["sessions" as const] : []),
+        ]),
+      ];
+      const tx = this.db.transaction(stores, "readwrite");
+      tx.oncomplete = () => resolve();
+      tx.onerror = tx.onabort = () =>
+        reject(
+          tx.error ?? new Error("Atomic save aborted; no records committed."),
+        );
+      const write = () => {
+        try {
+          for (const e of entries) {
+            const store = tx.objectStore(e.store);
+            if (e.addOnly) store.add(structuredClone(e.value));
+            else store.put(structuredClone(e.value));
+          }
+        } catch {
+          tx.abort();
+        }
+      };
+      if (guard) {
+        const request = tx.objectStore("sessions").get(guard.sessionId);
+        request.onsuccess = () => {
+          const prior = request.result as SessionRecord | undefined;
+          if (
+            (prior?.trialIds.length ?? 0) !== guard.trialCount ||
+            prior?.status === "completed"
+          )
+            tx.abort();
+          else write();
+        };
+      } else write();
+    });
+  }
   getAll<T>(store: StoreName): Promise<T[]> {
     return new Promise((resolve, reject) => {
       const request = this.db.transaction(store).objectStore(store).getAll();
@@ -67,15 +113,37 @@ export class Repository {
       tx.onerror = () => reject(tx.error);
     });
   }
-  async snapshot() {
-    const [profiles, equipment, sessions, trials, models] = await Promise.all([
-      this.getAll<UserProfile>("profiles"),
-      this.getAll<EquipmentProfile>("equipment"),
-      this.getAll<SessionRecord>("sessions"),
-      this.getAll<TrialRecord>("trials"),
-      this.getAll<SpatialModelSnapshot>("models"),
-    ]);
-    return { profiles, equipment, sessions, trials, models };
+  snapshot(): Promise<{
+    profiles: UserProfile[];
+    equipment: EquipmentProfile[];
+    sessions: SessionRecord[];
+    trials: TrialRecord[];
+    models: SpatialModelSnapshot[];
+  }> {
+    return new Promise((resolve, reject) => {
+      const names = [
+        "profiles",
+        "equipment",
+        "sessions",
+        "trials",
+        "models",
+      ] as const;
+      const tx = this.db.transaction([...names]);
+      const requests = names.map((name) => tx.objectStore(name).getAll());
+      tx.oncomplete = () =>
+        resolve({
+          profiles: requests[0]!.result,
+          equipment: requests[1]!.result,
+          sessions: requests[2]!.result,
+          trials: requests[3]!.result,
+          models: (requests[4]!.result as SpatialModelSnapshot[]).sort(
+            (a, b) =>
+              a.createdAt.localeCompare(b.createdAt) ||
+              a.id.localeCompare(b.id),
+          ),
+        });
+      tx.onerror = tx.onabort = () => reject(tx.error);
+    });
   }
   close() {
     this.db.close();
