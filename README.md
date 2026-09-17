@@ -1,67 +1,47 @@
-# DSPDS
+# FORM BLEND + DSPDS
 
-DSPDS is a local-first, desktop browser application for studying digital-spatial aim intuition and training blended arm, wrist, and fingertip control.
+A local-first desktop browser application for inspecting open-loop spatial movement and training a deliberate large-sweep → stop → smaller-flick → micro-adjust → click sequence.
 
-The repository covers two connected systems:
+> Experimental first-release branch. Automated browser evidence does not establish physical mouse-input fidelity or training efficacy. See [`docs/experiments/SOL_FULL_COMPLETION_20260917.md`](docs/experiments/SOL_FULL_COMPLETION_20260917.md) for the acceptance matrix and explicit gaps.
 
-- **DSPDS — Digital-Spatial Predilection Detection System:** formal and practice scenarios that compare visible spatial events with the user's open-loop physical mouse response.
-- **Form Blend:** a 3D aim-form exercise that trains a large primary sweep, controlled transition, smaller secondary flick, and final micro-adjustment.
+## Run
 
-## Current phase
+Use Node 22 (see `.nvmrc`):
 
-**M0 application scaffold and architecture diagnostic implemented. Product mechanics begin in later milestones and are not part of this phase.**
+```bash
+npm ci
+npm run dev
+```
 
-Start with [`docs/00-START-HERE.md`](docs/00-START-HERE.md). Coding agents must read [`AGENTS.md`](AGENTS.md) before changing the repository.
+Open the printed local URL in current Windows Chrome or Edge. No account or backend is used. After the static bundle loads, runtime behavior has no network dependency.
 
-## Authority order
+## First use
 
-1. Approved product specification.
-2. Final Claude Design handoff.
-3. Pass 3 correction memo.
-4. Repository architecture and engineering documents.
-5. The active issue or task packet.
+1. Create the local profile and equipment context. DPI is optional; physical cm/360 verification is also optional.
+2. Read Input Readiness. A browser's delivered event cadence is not a verified hardware polling rate.
+3. Run a formal DSPDS assessment to create an official immutable model snapshot. Formal capture deliberately hides the reticle, endpoint, trial score, and coaching.
+4. Use DSPDS Practice separately; it is archived but never enters the official model.
+5. Complete arm-primary, wrist-primary, fingertip-primary, and freestyle visible-aim baseline blocks. These are instructed labels, not anatomical proof.
+6. Open Form Blend. Assistance modifies displayed camera output only; evaluation retains unmodified browser-delivered samples.
+7. Inspect History, raw-path replay, Profile Insights, and Data export/import.
 
-When sources conflict, the higher item controls. Do not silently reconcile conflicts.
+## Controls and data
 
-## Planned stack
+- Click **Begin capture** to request pointer lock with unadjusted movement and an honest adjusted-input fallback.
+- Move the mouse, then click **Complete movement**. Pointer-lock/focus loss makes the incomplete capture technically invalid.
+- Data is stored in the `form-blend-dspds` IndexedDB database in the active browser profile.
+- Full JSON export includes retained raw samples. Summary export removes raw/display trace arrays.
+- Import validates format/schema and adds missing IDs without overwriting conflicts.
 
-- Vite and TypeScript
-- React for application UI only
-- Three.js for the 3D scene and render loop
-- IndexedDB for local profiles, sessions, raw telemetry, recovery, import, and export
-- Web Workers for analysis that could interrupt rendering
-- Vitest and Playwright for automated tests
+## Verify
 
-The simulation and input path must remain independent of React rendering.
+```bash
+npm run format:check
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+npm run test:e2e
+```
 
-## First release priorities
-
-1. Transferable improvement in actual games.
-2. Reduced jitter and corrective dependence.
-3. Better arm, wrist, and fingertip blending.
-4. Understanding the internal spatial model.
-5. Useful analysis and visualization.
-6. Identifying directional weaknesses.
-7. Better stopping control.
-8. Finding an intuitive sensitivity range.
-
-## Non-negotiable product rules
-
-- Formal DSPDS assessments alone update the official spatial model.
-- DSPDS practice is archived separately and never silently changes the official model.
-- Formal DSPDS scenes provide no reticle, cursor, visible user endpoint, or trial-level corrective feedback.
-- Raw input is captured independently from camera rendering and assistance.
-- Hard-stop and soft-damping visuals never improve the raw score.
-- Sensitivity is a derived supporting output, not the identity of DSPDS.
-- Conclusions must be traceable to measurements and confidence.
-- No account, backend, multiplayer, mobile, controller, or cloud dependency in the first release.
-
-## Repository workflow
-
-Work is organized as small milestone issues and draft pull requests. Every PR must state the governing acceptance criteria, validation performed, and any unresolved uncertainty.
-
-See:
-
-- [`docs/engineering/IMPLEMENTATION_PLAN.md`](docs/engineering/IMPLEMENTATION_PLAN.md)
-- [`docs/agents/WORK_LOOP.md`](docs/agents/WORK_LOOP.md)
-- [`docs/engineering/TEST_STRATEGY.md`](docs/engineering/TEST_STRATEGY.md)
+Playwright screenshots are written to `screenshots/`. The required physical Windows Chrome/Edge input protocol remains a separate human validation described in `docs/engineering/TEST_STRATEGY.md`.
