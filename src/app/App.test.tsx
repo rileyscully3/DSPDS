@@ -1,23 +1,18 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, expect, test, vi } from "vitest";
-
-const dispose = vi.fn();
-vi.mock("../engine/createDiagnosticEngine", () => ({
-  mountDiagnosticEngine: vi.fn(() => ({ resize: vi.fn(), dispose })),
-}));
+import { render, screen } from "@testing-library/react";
+import { beforeEach, expect, test } from "vitest";
 import { App } from "./App";
-
 beforeEach(() => {
-  location.hash = "#/";
-  dispose.mockClear();
+  location.hash = "#/setup";
 });
-test("mounts the diagnostic and disposes it when navigating away", async () => {
+test("starts with an honest local-first setup flow", async () => {
   render(<App />);
-  expect(screen.getByTestId("scene-host")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Boundaries" }));
-  window.dispatchEvent(new HashChangeEvent("hashchange"));
-  await waitFor(() =>
-    expect(screen.queryByTestId("scene-host")).not.toBeInTheDocument(),
+  expect(
+    screen.getByRole("heading", { name: /Map how space feels/ }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/Physical verification is optional/),
+  ).toBeInTheDocument();
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    /saving unavailable/,
   );
-  expect(dispose).toHaveBeenCalledOnce();
 });
